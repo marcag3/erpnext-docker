@@ -24,14 +24,25 @@ case "$SYS_ARCH" in
     *       ) export S6_ARCH='x86_64'  ;;
 esac
 
-# Function to download and extract
+# Pinned SHA-256 checksums for S6_VERSION (from the release's *.sha256 files)
+case "$S6_ARCH" in
+    x86_64  ) S6_ARCH_SHA256='e6befcc96a437a3831386ecfc51808c5d3e939dc5fe3c02ae9284599e8aa2408' ;;
+    aarch64 ) S6_ARCH_SHA256='b17f17a82e7a515c682a91edaf2ffdabb73f891981b6c1fd712115693a2f8b4c' ;;
+    *       ) echo "No pinned checksum for s6-overlay ${S6_ARCH}"; exit 1 ;;
+esac
+S6_NOARCH_SHA256='5379750ed30a84bbd2e2dd74847ba6b5bd29cd0b2e3ea2ec58049b57eb2eda12'
+
+# Function to download, verify and extract
 untar() {
     echo "⏬ Downloading $1"
-    curl -L $1 -o - | tar Jxp -C $S6_DIR
+    curl -fsSL "$1" -o /tmp/s6.tar.xz
+    echo "$2  /tmp/s6.tar.xz" | sha256sum -c -
+    tar Jxp -C "$S6_DIR" -f /tmp/s6.tar.xz
+    rm -f /tmp/s6.tar.xz
 }
 
 echo "⬇️ Downloading s6 overlay:${S6_ARCH}-${S6_VERSION} for ${SYS_ARCH}"
-untar ${S6_SRC_URL}/${S6_VERSION}/s6-overlay-noarch.tar.xz
-untar ${S6_SRC_URL}/${S6_VERSION}/s6-overlay-${S6_ARCH}.tar.xz
+untar "${S6_SRC_URL}/${S6_VERSION}/s6-overlay-noarch.tar.xz" "$S6_NOARCH_SHA256"
+untar "${S6_SRC_URL}/${S6_VERSION}/s6-overlay-${S6_ARCH}.tar.xz" "$S6_ARCH_SHA256"
 
 echo "S6 Overlay installation completed"

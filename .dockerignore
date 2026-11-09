@@ -7,6 +7,8 @@ LICENSE
 CLAUDE.md
 compose*.yaml
 docker-compose*.yml
-db-data
+db-data*
 sites
 scripts
+logs
+*.sql

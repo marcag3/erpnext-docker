@@ -58,6 +58,7 @@ COPY --chmod=755 src/common/usr/local/bin/ /usr/local/bin/
 # Install additional packages needed for nginx and S6
 USER root
 RUN apt-get update \
+    && apt-get upgrade -y \
     && apt-get install --no-install-recommends -y \
     nginx \
     gettext-base \
@@ -84,10 +85,11 @@ RUN apt-get update \
     # For S6 overlay installation
     xz-utils \
     # Install wkhtmltopdf
-    && if [ "$(uname -m)" = "aarch64" ]; then export ARCH=arm64; fi \
-    && if [ "$(uname -m)" = "x86_64" ]; then export ARCH=amd64; fi \
+    && if [ "$(uname -m)" = "aarch64" ]; then export ARCH=arm64 WKHTML_SHA256=b6606157b27c13e044d0abbe670301f88de4e1782afca4f9c06a5817f3e03a9c; fi \
+    && if [ "$(uname -m)" = "x86_64" ]; then export ARCH=amd64 WKHTML_SHA256=98ba0d157b50d36f23bd0dedf4c0aa28c7b0c50fcdcdc54aa5b6bbba81a3941d; fi \
     && downloaded_file=wkhtmltox_0.12.6.1-3.bookworm_${ARCH}.deb \
-    && curl -sLO https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6.1-3/${downloaded_file} \
+    && curl -fsSLO https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6.1-3/${downloaded_file} \
+    && echo "${WKHTML_SHA256}  ${downloaded_file}" | sha256sum -c - \
     && apt-get install -y ./${downloaded_file} \
     && rm ${downloaded_file} \
     # Clean up
