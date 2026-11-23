@@ -14,7 +14,7 @@ CURRENT_BUILDER=$(docker buildx inspect --bootstrap | grep "Driver:" | awk '{pri
 echo "🔧 Current builder: $CURRENT_BUILDER"
 
 echo "🔨 Building image with docker buildx bake..."
-if docker buildx bake erpnext-nginx; then
+if docker buildx bake --pull erpnext-nginx; then
     echo "✅ Build completed successfully!"
     echo ""
     echo "🚀 To start services:"

@@ -57,7 +57,11 @@ COPY --chmod=755 src/common/usr/local/bin/ /usr/local/bin/
 
 # Install additional packages needed for nginx and S6
 USER root
-RUN apt-get update \
+# Without a changing input this layer (and its `apt-get upgrade`) is served from the
+# build cache forever, so Debian security fixes never reach the image: CI passes the date
+ARG APT_REV
+RUN echo "apt revision: ${APT_REV:-unset}" \
+    && apt-get update \
     && apt-get upgrade -y \
     && apt-get install --no-install-recommends -y \
     nginx \
@@ -70,13 +74,14 @@ RUN apt-get update \
     libpangocairo-1.0-0 \
     # Chromium (print_designer)
     libatk-bridge2.0-0t64 \
-    # For backups
-    restic \
+    # For backups (restic itself is installed below)
     gpg \
+    # only to unpack restic below, purged right after
+    bzip2 \
     # MariaDB
     mariadb-client \
     less \
-    # Postgres
+    # Postgres (already part of frappe/base; kept explicit)
     libpq-dev \
     postgresql-client \
     # For healthcheck
@@ -92,6 +97,18 @@ RUN apt-get update \
     && echo "${WKHTML_SHA256}  ${downloaded_file}" | sha256sum -c - \
     && apt-get install -y ./${downloaded_file} \
     && rm ${downloaded_file} \
+    # restic: the Debian package is built with an old Go toolchain whose stdlib CVEs we
+    # cannot patch, so install the upstream binary (SHA-256 from the release's SHA256SUMS)
+    && RESTIC_VERSION=0.20.0 \
+    && if [ "$(uname -m)" = "aarch64" ]; then export RESTIC_SHA256=1188daded239bccb5952a01d2ad33e77a0d3dc34f9d9fc1e7fdda618d44938ef; fi \
+    && if [ "$(uname -m)" = "x86_64" ]; then export RESTIC_SHA256=0ccd9fa7885074a24603b051e01bf9bd8b5e45d6a1791e9d9887e9e9372107f7; fi \
+    && restic_file=restic_${RESTIC_VERSION}_linux_${ARCH}.bz2 \
+    && curl -fsSLO https://github.com/restic/restic/releases/download/v${RESTIC_VERSION}/${restic_file} \
+    && echo "${RESTIC_SHA256}  ${restic_file}" | sha256sum -c - \
+    && bunzip2 ${restic_file} \
+    && apt-get purge -y bzip2 \
+    && install -m 755 restic_${RESTIC_VERSION}_linux_${ARCH} /usr/local/bin/restic \
+    && rm restic_${RESTIC_VERSION}_linux_${ARCH} \
     # Clean up
     && rm -rf /var/lib/apt/lists/* \
     && rm -fr /etc/nginx/sites-enabled/default \

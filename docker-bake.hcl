@@ -21,6 +21,12 @@ variable "APPS_JSON_BASE64" {
   default = ""
 }
 
+# Changing it re-runs apt-get upgrade instead of reusing the cached layer; the default
+# (today's date) refreshes it at most once a day, override with APT_REV=<anything>
+variable "APT_REV" {
+  default = formatdate("YYYY-MM-DD", timestamp())
+}
+
 target "erpnext-nginx" {
   context = "."
   dockerfile = "src/variations/erpnext-nginx/Dockerfile"
@@ -30,6 +36,7 @@ target "erpnext-nginx" {
     FRAPPE_BRANCH = "${FRAPPE_BRANCH}"
     FRAPPE_PATH = "${FRAPPE_PATH}"
     APPS_JSON_BASE64 = "${APPS_JSON_BASE64}"
+    APT_REV = "${APT_REV}"
   }
   tags = [
     "ghcr.io/marcag3/erpnext-docker:latest",

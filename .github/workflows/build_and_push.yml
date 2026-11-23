@@ -69,11 +69,13 @@ jobs:
         context: .
         file: src/variations/erpnext-nginx/Dockerfile
         push: true
+        pull: true
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
         build-args: |
           APPS_JSON_BASE64=${{ steps.apps_json.outputs.apps_json_base64 }}
           APPS_REV=${{ steps.revs.outputs.apps_rev }}
+          APT_REV=${{ github.run_id }}-${{ github.run_attempt }}
         cache-from: |
           type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}
           type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}-buildcache
