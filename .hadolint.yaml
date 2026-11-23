@@ -1,0 +1,13 @@
+failure-threshold: warning
+ignored:
+  # Packages are deliberately unpinned: the weekly rebuild exists to pick up Debian fixes
+  - DL3008
+  # `apt-get install ./file.deb` for wkhtmltopdf has no recommends flag to set
+  - DL3015
+  # `USER root` in the intermediate stages; the final stage drops to frappe
+  - DL3002
+  # bench init needs a cd into the bench, and the pipes are `echo | tool`
+  - DL3003
+  - DL4006
+  # find | xargs on the cloned apps (no spaces in app paths)
+  - SC2038

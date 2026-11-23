@@ -28,7 +28,7 @@ docker compose exec -u frappe web bench --site frontend migrate
 docker compose exec -u frappe web bench --site frontend console
 ```
 
-There is no lint config and no test suite (see Tests).
+Lint (hadolint on the Dockerfile, actionlint on the workflows) runs in CI via `.github/workflows/lint.yml`, config in `.hadolint.yaml`; run the same `docker run` commands from that file locally. There is no test suite (see Tests).
 
 ## Architecture
 
@@ -49,6 +49,7 @@ There is no lint config and no test suite (see Tests).
 - Chromium for `print_designer` is downloaded at image build time into `<bench>/chromium` (the app would otherwise fetch it at site install, into the container, where it is lost on recreate); `libatk-bridge2.0-0t64` is installed because the headless shell needs it.
 - The image is `ghcr.io/marcag3/erpnext-docker` everywhere (bake, compose, CI, `.env.example`).
 - `.env` and `.vscode/` are gitignored.
+- The restic and s6-overlay versions and SHA-256 pins are rewritten by `.github/scripts/bump-pins.sh` in the weekly build, which commits the bump to the branch after a green build: `git pull` before editing those lines. Actions versions are bumped by Dependabot.
 
 ## Tests
 

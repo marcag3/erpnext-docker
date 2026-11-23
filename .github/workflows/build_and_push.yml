@@ -17,12 +17,20 @@ jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       packages: write
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v7
+
+    # Weekly and manual runs move the pinned restic and s6-overlay to their latest
+    # release before building; the result is committed below once the build passed
+    - name: Bump pinned downloads
+      if: github.event_name != 'push'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: .github/scripts/bump-pins.sh
 
     - name: Log in to the Container registry
       uses: docker/login-action@v4
@@ -43,9 +51,7 @@ jobs:
 
     - name: Generate APPS_JSON_BASE64
       id: apps_json
-      run: |
-        APPS_JSON=$(cat apps.json)
-        echo "apps_json_base64=$(echo $APPS_JSON | base64 -w 0)" >> "$GITHUB_OUTPUT"
+      run: echo "apps_json_base64=$(base64 -w 0 < apps.json)" >> "$GITHUB_OUTPUT"
 
     # bench init clones frappe and every app from a branch; without this the layer is
     # served from cache forever because none of its inputs (apps.json, branch name) change
@@ -84,3 +90,18 @@ jobs:
           type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}-buildcache,mode=max,compression=zstd
           type=gha,mode=max,scope=${{ github.ref_name }}
 
+    # Only reached when the build above succeeded, so a bump that breaks the image is
+    # never committed and the previous pins stay. A push made with GITHUB_TOKEN does not
+    # trigger another run.
+    - name: Commit bumped pins
+      if: github.event_name != 'push'
+      run: |
+        if git diff --quiet; then
+          echo "pins already up to date"
+          exit 0
+        fi
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git commit -am "⬆️ build: bump pinned restic and s6-overlay"
+        git pull --rebase
+        git push

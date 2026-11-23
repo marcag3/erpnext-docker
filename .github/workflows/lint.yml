@@ -1,0 +1,44 @@
+name: Lint
+
+on:
+  push:
+    branches:
+      - v15
+      - v16
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  hadolint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v7
+    - name: hadolint
+      run: docker run --rm -v "$PWD:/repo" -w /repo hadolint/hadolint hadolint src/variations/erpnext-nginx/Dockerfile
+
+  actionlint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v7
+    - name: actionlint
+      run: docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:latest
+
+  # Dependabot bumps of the actions used here: merge them once the lint passes. The
+  # weekly build then runs with the new versions, and a failure there leaves the
+  # previous image in place.
+  automerge:
+    needs: [hadolint, actionlint]
+    if: github.event_name == 'pull_request' && github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+    - name: Merge the Dependabot PR
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        PR_URL: ${{ github.event.pull_request.html_url }}
+      run: gh pr merge --squash "$PR_URL"

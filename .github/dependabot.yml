@@ -1,0 +1,8 @@
+version: 2
+updates:
+  # Versions of the actions used by the workflows; the binaries pinned in the Dockerfile
+  # and s6 script are bumped by .github/scripts/bump-pins.sh in the weekly build
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
