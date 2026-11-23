@@ -9,6 +9,11 @@ on:
       - v15
       - v16
 
+# One build per branch at a time: a newer run (push, cron or manual) cancels the older one
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
